@@ -10,7 +10,8 @@ class Player(object):
         self.name = name
         self.hand = []
         self.tricks = []
-        self.points = 0
+        self.round_points = 0
+        self.game_points = 0
         self.team = None
 
     def __repr__(self):

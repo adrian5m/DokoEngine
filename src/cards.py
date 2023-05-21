@@ -19,7 +19,7 @@ class Card(object):
         
 
     def __repr__(self):
-        return f'{self.face} of {self.suit}s'
+        return f'{self.face} of {self.suit}'
 
 
 class Deck(object):
