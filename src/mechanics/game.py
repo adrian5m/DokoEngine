@@ -142,5 +142,3 @@ class Game(object):
             self.deal_cards()
             Round(self.players)
             self.players = [player for player in self.players if player != self.players[0]] + [self.players[0]] # update the order of players so the next one gets to start
-
-
