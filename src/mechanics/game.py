@@ -10,19 +10,25 @@ class Round(object):
         Args:
             players (list[Player]): List of players
         """
-        self.players = players
-        self.current_player = players[0]
-        self.played_tricks = []
+        self.game_state = {
+            'players': players,
+            'current_player': players[0],
+            're_calls': [],
+            'contra_calls': [],
+            'trick': [],
+            'last_trick': [],
+            '_played_tricks': [],    
+        }
         self.round_finished = False
         self.play()
         
     def get_current_player(self) -> Player:
         """Returns the current player"""
-        return self.current_player
+        return self.game_state['current_player']
     
     def assign_teams(self) -> None:
         """Assigns the teams based on the Queen of Clubs"""
-        for player in self.players:
+        for player in self.game_state['players']:
             player.team = 'Re' if 'CQ' in [card.name for card in player.hand] else 'Contra'
 
     def eval_trick(self, trick: list[Card], start_idx: int) -> int:
@@ -56,7 +62,7 @@ class Round(object):
         if result_idx > 3: 
             result_idx -= 4
 
-        self.players[result_idx].round_points += trick_points
+        self.game_state['players'][result_idx].round_points += trick_points
         return result_idx
         
     def play(self):
@@ -64,18 +70,17 @@ class Round(object):
         self.assign_teams()
         player_in_action = self.get_current_player()
         while not self.round_finished:
-            starting_player = self.players.index(player_in_action)
-            trick = []
+            starting_player = self.game_state['players'].index(player_in_action)
             cards_on_hand = {idx: c for idx, c in enumerate(player_in_action.hand)}
             card_to_play = cards_on_hand[int(input(f"{player_in_action.name}: Play one of the following cards {cards_on_hand}:"))]
             card = player_in_action.play_card(card_to_play.name)
             suit_of_trick = 'Trump' if card.is_trump else card.suit
-            trick.append(card)
+            self.game_state['trick'].append(card)
             idx = starting_player + 1
-            while len(trick) < 4:
+            while len(self.game_state['trick']) < 4:
                 if idx > 3:
                     idx = 0
-                self.current_player = self.players[idx]
+                self.game_state['current_player'] = self.game_state['players'][idx]
                 player_in_action = self.get_current_player()
                 while True:
                     cards_on_hand = {idx: c for idx, c in enumerate(player_in_action.hand)}
@@ -91,19 +96,21 @@ class Round(object):
                     print('Your card did not match the criteria for following the trick. Please play another card.')
                     player_in_action.hand.append(card)
                 
-                trick.append(card)
+                self.game_state['trick'].append(card)
                 idx += 1
             
             # evaluate trick and make the winner to the person who will start the next trick
-            self.played_tricks.append(trick)
-            winner_idx = self.eval_trick(trick=trick, start_idx=starting_player)
-            self.current_player = self.players[winner_idx]
+            self.game_state['_played_tricks'].append(self.game_state['trick'])
+            winner_idx = self.eval_trick(trick=self.game_state['trick'], start_idx=starting_player)
+            self.game_state.update({'last_trick': (self.game_state['players'][winner_idx], self.game_state['trick'])})
+            self.game_state['trick'].clear()
+            self.game_state['current_player'] = self.game_state['players'][winner_idx]
             player_in_action = self.get_current_player()
             
             if not len(player_in_action.hand):
                 self.round_finished = True
                       
-        for player in self.players:
+        for player in self.game_state['players']:
             print(f'Player: {player.name}\t|\tTeam: {player.team}\t|\tPoints: {player.round_points}')    
 
 
