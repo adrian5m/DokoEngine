@@ -23,7 +23,7 @@ class Round(object):
     def assign_teams(self) -> None:
         """Assigns the teams based on the Queen of Clubs"""
         for player in self.players:
-            player.team = 'Re' if 'QC' in [card.name for card in player.hand] else 'Contra'
+            player.team = 'Re' if 'CQ' in [card.name for card in player.hand] else 'Contra'
 
     def eval_trick(self, trick: list[Card], start_idx: int) -> int:
         """Evaluate the trick and give the rewarding points to the winner
@@ -66,7 +66,9 @@ class Round(object):
         while not self.round_finished:
             starting_player = self.players.index(player_in_action)
             trick = []
-            card = player_in_action.play_card(input(f"{player_in_action.name}: Play one of the following cards {[x.name for x in player_in_action.hand]}:"))
+            cards_on_hand = {idx: c for idx, c in enumerate(player_in_action.hand)}
+            card_to_play = cards_on_hand[int(input(f"{player_in_action.name}: Play one of the following cards {cards_on_hand}:"))]
+            card = player_in_action.play_card(card_to_play.name)
             suit_of_trick = 'Trump' if card.is_trump else card.suit
             trick.append(card)
             idx = starting_player + 1
@@ -76,7 +78,9 @@ class Round(object):
                 self.current_player = self.players[idx]
                 player_in_action = self.get_current_player()
                 while True:
-                    card = player_in_action.play_card(input(f"{player_in_action.name}: Play one of the following cards {[x.name for x in player_in_action.hand]}:"))
+                    cards_on_hand = {idx: c for idx, c in enumerate(player_in_action.hand)}
+                    card_to_play = cards_on_hand[int(input(f"{player_in_action.name}: Play one of the following cards {cards_on_hand}:"))]
+                    card = player_in_action.play_card(card_to_play.name)
                     if suit_of_trick == 'Trump' and (card.is_trump or not any([x.is_trump for x in player_in_action.hand])):
                         break
                     elif suit_of_trick != 'Trump':
@@ -100,7 +104,7 @@ class Round(object):
                 self.round_finished = True
                       
         for player in self.players:
-            print(f'Player: {player.name} | Team: {player.team} | Points: {player.round_points}')    
+            print(f'Player: {player.name}\t|\tTeam: {player.team}\t|\tPoints: {player.round_points}')    
 
 
 class Game(object):
