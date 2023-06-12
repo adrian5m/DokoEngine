@@ -166,7 +166,79 @@ class Round(object):
                       
         for player in self.game_state['players']:
             print(f'Player: {player.name}\t|\tTeam: {player.team}\t|\tPoints: {player.round_points}')    
+        
+        game_results, winner = self.on_round_end()
+        round_game_points = sum([x[1] for x in game_results])
+        for player in self.game_state['players']:
+            player.game_points += round_game_points if player.team == winner else -round_game_points
+        print(f'Winner:\t{winner}\n ---------------------- \n')
+        for result in game_results:
+            print(f'{result[0]} \t {result[1]}')
+        print(f'Sum:\t{round_game_points}')
 
+    def on_round_end(self) -> tuple[tuple[str, int], str]:
+        # check for announcements of Re or Contra etc.
+        re_points = sum([player.round_points for player in self.game_state['players'] if player.team == 'Re'])
+        contra_points = sum([player.round_points for player in self.game_state['players'] if player.team == 'Contra']) # could also be 240 - re_points
+        top_re_call = min(self.game_state['re_calls']) if len(self.game_state['re_calls']) else None
+        top_contra_call = min(self.game_state['contra_calls']) if len(self.game_state['contra_calls']) else None
+        game_points = [('Won', 1)]
+        threshold = 121
+        if top_re_call is not None and top_contra_call is not None:
+            if contra_points >= top_re_call and re_points >= top_contra_call: # special case now only the team with the higher points get game points based on their round points and game points will be added/subtracted if the team reaches 30 over the announcement of the other team 
+                # 30 point steps against call of the other team
+                contra_game_points = (contra_points - top_re_call) // 30 if (contra_points - top_re_call) // 30 > 0 else 0
+                re_game_points = (re_points - top_contra_call) // 30 if (re_points - top_contra_call) // 30 > 0 else 0
+                
+                contra_game_points = -contra_game_points if re_points > contra_points else contra_points
+                re_game_points = -re_game_points if re_points < contra_points else re_points
+                
+                if contra_game_points != 0:
+                    game_points.append((f'Contra got +{30*abs(contra_game_points)} against no {top_re_call}', contra_game_points))
+                if re_game_points != 0:
+                    game_points.append((f'Re got +{30*abs(re_game_points)} against no {top_contra_call}', re_game_points))
+                
+                self.game_state['re_calls'].clear
+                self.game_state['contra_calls'].clear            
+            else:
+                re_won = re_points >= top_contra_call and contra_points < top_re_call
+            # check which team has the lower call
+        elif top_re_call is not None:
+            game_points.append(('Re called', 1))
+            threshold = top_re_call
+            re_won = contra_points >= threshold
+        elif top_contra_call is not None:
+            game_points.append(('Contra called', 1))
+            threshold = top_contra_call
+            re_won = re_points >= threshold            
+        else:
+            re_won = re_points >= threshold
+        
+        re_calls_game_points = len(self.game_state['re_calls']) - 1
+        contra_calls_game_points = len(self.game_state['contra_calls']) - 1
+        if re_calls_game_points > 0:
+            game_points.append((f'No {120 - re_calls_game_points*30} called', re_calls_game_points))
+        if contra_calls_game_points > 0:
+            game_points.append((f'No {120 - contra_calls_game_points*30} called', contra_calls_game_points))
+        
+        winner_points = re_points    
+        if not re_won:
+            winner_points = contra_points
+            game_points.append(('Against the elders', 1))
+        
+        points_game_points = (winner_points - 120) // 30 
+        if points_game_points > 0:
+            game_points.append((f'No {120 - points_game_points*30} achieved', points_game_points))
+        
+        # reset the player's round points
+        for player in self.game_state['players']:
+            player.round_points = 0
+           
+        return (game_points, 'Re') if re_won else (game_points, 'Contra')
+         
+        
+        # check for bonus points 
+        
 
 class Game(object):
     """Game class that brings all classes together and handles the general procedure"""
