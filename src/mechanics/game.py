@@ -26,13 +26,18 @@ class Round(object):
         self.round_finished = False
         self.play()
     
-    def parse_game_state(self) -> dict:
+    def get_public_game_state(self) -> dict:
         """Parses the public game state for the players"""
         public_state = {key: value for key, value in self.game_state.items() if not key.startswith('_')}
         for player in public_state['players']:
             player.team = None
         # todo: maybe hide the round points of each player
         return public_state
+    
+    def brodcast_game_state(self) -> None:
+        """Brodcast the game state to all players"""
+        for player in self.game_state['players']:
+            player.set_game_state(self.get_public_game_state())
     
     def update_game_state(self, idx: int, trick: list[Card] = None, card: Card = None, call = None) -> None:
         """Updates the game state based on a played card, trick or made call
@@ -127,6 +132,7 @@ class Round(object):
         """Executes the round"""
         self.assign_teams()
         player_in_action = self.get_current_player()
+        self.brodcast_game_state()
         while not self.round_finished:
             starting_player = self.game_state['players'].index(player_in_action)
             cards_on_hand = {idx: c for idx, c in enumerate(player_in_action.hand)}
@@ -134,12 +140,14 @@ class Round(object):
             card = player_in_action.play_card(card_to_play.name)
             suit_of_trick = 'Trump' if card.is_trump else card.suit
             self.update_game_state(idx=starting_player, card=card, call=None)
+            self.brodcast_game_state()
             idx = starting_player + 1
             while len(self.game_state['trick']) < 4:
                 if idx > 3:
                     idx = 0
                 self.game_state['current_player'] = self.game_state['players'][idx]
                 player_in_action = self.get_current_player()
+                self.brodcast_game_state()
                 while True:
                     cards_on_hand = {idx: c for idx, c in enumerate(player_in_action.hand)}
                     card_to_play = cards_on_hand[int(input(f"{player_in_action.name}: Play one of the following cards {cards_on_hand}:"))]
@@ -156,9 +164,11 @@ class Round(object):
                 
                 # todo update game state when a call is made
                 self.update_game_state(idx=idx, card=card, call=None)
+                self.brodcast_game_state()
                 idx += 1
             
             self.update_game_state(idx=starting_player, trick=self.game_state['trick'])
+            self.brodcast_game_state()
             player_in_action = self.get_current_player()
             
             if not len(player_in_action.hand):
@@ -171,7 +181,8 @@ class Round(object):
         round_game_points = sum([x[1] for x in game_results])
         for player in self.game_state['players']:
             player.game_points += round_game_points if player.team == winner else -round_game_points
-        print(f'Winner:\t{winner}\n ---------------------- \n')
+        self.brodcast_game_state()
+        print(f'\nWinner:\t{winner}\n ---------------------- \n')
         for result in game_results:
             print(f'{result[0]} \t {result[1]}')
         print(f'Sum:\t{round_game_points}')

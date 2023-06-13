@@ -13,6 +13,7 @@ class Player(object):
         self.round_points = 0
         self.game_points = 0
         self.team = None
+        self.game_state: dict = None
 
     def __repr__(self):
         return self.name
@@ -30,7 +31,10 @@ class Player(object):
         played_card = next((x for x in self.hand if x.name == card), None)
         self.hand.remove(played_card)
         return played_card
-
+    
+    def set_game_state(self, game_state: dict):
+        self.game_state = game_state
+    
     def __sanity_check(self, played_card: str):
         """Checks if the card is in the player's hand
 
